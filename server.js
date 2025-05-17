@@ -7,7 +7,7 @@ const cors = require('cors');
 const app = express();
 
 app.use(cors({
-    origin: "https://homey.test",
+    origin: "https://homey.webpenter.com",
     methods: ["GET", "POST"],
     credentials: true
 }));
@@ -15,7 +15,7 @@ app.use(cors({
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: "https://homey.test",
+        origin: "https://homey.webpenter.com",
         methods: ["GET", "POST"],
         credentials: true
     }
