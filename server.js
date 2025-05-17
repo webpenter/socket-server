@@ -5,11 +5,19 @@ const cors = require('cors');
 
 // Setup
 const app = express();
-app.use(cors());
+
+app.use(cors({
+    origin: "https://homey.test",
+    methods: ["GET", "POST"],
+    credentials: true
+}));
+
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: "*"
+        origin: "https://homey.test",
+        methods: ["GET", "POST"],
+        credentials: true
     }
 });
 
