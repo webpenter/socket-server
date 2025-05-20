@@ -7,7 +7,7 @@ const cors = require('cors');
 const app = express();
 
 app.use(cors({
-    origin: "https://homey.webpenter.com",
+    origin: "*",
     methods: ["GET", "POST"],
     credentials: true
 }));
@@ -15,7 +15,7 @@ app.use(cors({
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: "https://homey.webpenter.com",
+        origin: "*",
         methods: ["GET", "POST"],
         credentials: true
     }
@@ -31,6 +31,12 @@ io.on('connection', (socket) => {
     socket.on('join', ({ userId }) => {
         onlineUsers[userId] = socket.id;
         console.log(`${userId} joined. Socket ID: ${socket.id}`);
+
+        socket.userId = userId;
+
+        // Notify others
+        socket.broadcast.emit('user_online', { userId });
+        io.emit('update_online_users', Object.keys(onlineUsers));
     });
 
     socket.on('send_message', (data) => {
@@ -74,11 +80,29 @@ io.on('connection', (socket) => {
         for (const id in onlineUsers) {
             if (onlineUsers[id] === socket.id) {
                 delete onlineUsers[id];
+                socket.broadcast.emit('user_offline', { userId: id });
                 break;
             }
         }
         console.log('User disconnected:', socket.id);
+        io.emit('update_online_users', Object.keys(onlineUsers));
     });
+
+    socket.on('check_user_status', (data) => {
+        const targetUserId = data.userId;
+        const isOnline = !!onlineUsers[targetUserId];
+        socket.emit(isOnline ? 'user_online' : 'user_offline', { userId: targetUserId });
+    });
+
+    socket.on('mark_seen', function ({ receiverId, seenMessages }) {
+        seenMessages.forEach(msg => {
+            io.to(onlineUsers[msg.senderId]).emit('message_seen', {
+                messageId: msg.id,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+        });
+    });
+
 });
 
 server.listen(PORT, () => {
